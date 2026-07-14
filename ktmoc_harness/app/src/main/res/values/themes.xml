@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KTMOC CRT Theme - F-Droid Compatible -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme -->
+    <style name="Theme.Ktmoc" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#00aa00</item>
+        <item name="colorPrimaryVariant">#007700</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorSecondary">#00ffff</item>
+        <item name="colorSecondaryVariant">#00cccc</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="android:statusBarColor">#001a00</item>
+        <item name="android:navigationBarColor">#000000</item>
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:colorBackground">#000000</item>
+    </style>
+
+    <!-- Dialog theme for AI configuration -->
+    <style name="KtmocDialogTheme" parent="Theme.MaterialComponents.Dialog.Alert">
+        <item name="colorPrimary">#00aa00</item>
+        <item name="colorSecondary">#00ffff</item>
+        <item name="android:background">#000500</item>
+        <item name="android:textColor">#00ff00</item>
+    </style>
+
+    <!-- CRT display effect style -->
+    <style name="CrtText" parent="android:Widget.TextView">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textColor">#00ff00</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0.1</item>
+    </style>
+</resources>
