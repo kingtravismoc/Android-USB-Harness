@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<metadata>
+    <id>com.ktmoc.nexus</id>
+    <name>KTMOC NEXUS</name>
+    <summary>AI-Powered WebUSB Debugging Harness</summary>
+    <description>KTMOC NEXUS is a skeuomorphic Android application that serves as a WebUSB computer harness for debugging and interrogation of laptops. It features AI-powered analysis using Hugging Face, dynamic view transformation, and I2P compatibility for secure deployment.</description>
+    <author>KTMOC Development Team</author>
+    <source>https://github.com/ktmoc/nexus</source>
+    <tracker>https://github.com/ktmoc/nexus/issues</tracker>
+    <license>GPL-3.0-or-later</license>
+    
+    <categories>
+        <category>Development</category>
+        <category>Security</category>
+        <category>System</category>
+    </categories>
+    
+    <web_site>https://ktmocnexus.i2p</web_site>
+    <changelog>https://raw.githubusercontent.com/ktmoc/nexus/main/CHANGELOG.md</changelog>
+    
+    <requires-root>false</requires-root>
+    <anti-features>
+        <!-- No anti-features - fully F-Droid compliant -->
+    </anti-features>
+    
+    <packages>
+        <package versionCode="1" versionName="1.0.0" apk="nexus-1.0.0.apk" sig="signature_hash_here" minSdkVersion="26" targetSdkVersion="34" maxSdkVersion="35">
+            <hash type="sha256">apk_sha256_hash_here</hash>
+        </package>
+    </packages>
+</metadata>

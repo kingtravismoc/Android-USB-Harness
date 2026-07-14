@@ -1,4 +1,18 @@
 <resources>
-    <string name="app_name">Goblin</string>
+    <string name="app_name">KTMOC NEXUS</string>
     <string name="action_settings">Settings</string>
+    
+    <!-- I2P Configuration -->
+    <string name="i2p_destination">YOUR_I2P_DESTINATION_HERE</string>
+    <string name="i2p_eepsite_path">/var/lib/i2pd/eepsites/ktmocnexus</string>
+    <string name="fdroid_repo_url">https://ktmocnexus.i2p/fdroid/repo</string>
+    
+    <!-- App Strings -->
+    <string name="status_offline">OFFLINE</string>
+    <string name="status_ready">READY</string>
+    <string name="status_connecting">CONNECTING</string>
+    <string name="security_alert_title">Security Alert</string>
+    <string name="security_alert_message">This installation may be compromised. Please download from the official I2P repository.</string>
+    <string name="update_available">Update Available</string>
+    <string name="critical_update_message">Critical security update available. Please update immediately.</string>
 </resources>

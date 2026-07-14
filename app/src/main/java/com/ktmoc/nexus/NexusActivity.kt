@@ -17,12 +17,15 @@ import androidx.appcompat.app.AppCompatActivity
 import com.ktmoc.nexus.ai.HuggingFaceService
 import com.ktmoc.nexus.skeuomorphic.SkeuomorphicEngine
 import com.ktmoc.nexus.view.ViewFactory
+import com.ktmoc.nexus.update.VersionChecker
+import com.ktmoc.nexus.i2pd.I2pdRepositoryManager
 import kotlinx.coroutines.*
 import org.json.JSONObject
 
 /**
  * KTMOC NEXUS v4.1 - Main Activity
- * Integrates skeuomorphic transformations, dynamic views, AI shims, and WebUSB
+ * Integrates skeuomorphic transformations, dynamic views, AI shims, WebUSB,
+ * F-Droid repository integration with version verification and I2P sync
  */
 class NexusActivity : AppCompatActivity() {
     
@@ -40,6 +43,8 @@ class NexusActivity : AppCompatActivity() {
     private lateinit var viewFactory: ViewFactory
     private lateinit var aiService: HuggingFaceService
     private lateinit var skeuomorphicEngine: SkeuomorphicEngine
+    private lateinit var versionChecker: VersionChecker
+    private lateinit var i2pRepoManager: I2pdRepositoryManager
     
     private val nexusScope = CoroutineScope(Dispatchers.Main + Job())
     private var geminiKey: String? = null
@@ -52,6 +57,8 @@ class NexusActivity : AppCompatActivity() {
         viewFactory = ViewFactory(this)
         aiService = HuggingFaceService(this)
         skeuomorphicEngine = SkeuomorphicEngine(this)
+        versionChecker = VersionChecker(this)
+        i2pRepoManager = I2pdRepositoryManager(this)
         
         // Setup UI
         setContentView(R.layout.activity_nexus)
@@ -71,12 +78,21 @@ class NexusActivity : AppCompatActivity() {
         // Load interface
         loadNexusInterface()
         
+        // Verify installation authenticity
+        verifyInstallation()
+        
+        // Start periodic version checks (every 6 hours)
+        versionChecker.startPeriodicCheck()
+        
+        // Initialize I2P repository sync
+        initializeI2pSync()
+        
         // Setup skeuomorphic updates
         skeuomorphicEngine.addListener { state ->
             updateUIForState(state)
         }
         
-        Log.i(TAG, "KTMOC NEXUS v4.1 initialized")
+        Log.i(TAG, "KTMOC NEXUS v4.1 initialized with F-Droid integration")
     }
     
     @SuppressLint("SetJavaScriptEnabled")
@@ -339,8 +355,114 @@ class NexusActivity : AppCompatActivity() {
         return super.onKeyDown(keyCode, event)
     }
     
+    /**
+     * Verify installation authenticity against GitHub version
+     */
+    private fun verifyInstallation() {
+        nexusScope.launch {
+            try {
+                val packageInfo = packageManager.getPackageInfo(packageName, 0)
+                val currentVersionCode = packageInfo.versionCode
+                
+                // Calculate APK hash
+                val apkPath = applicationInfo.sourceDir
+                val apkHash = versionChecker.calculateApkHash(apkPath)
+                
+                // Verify against stored expectations
+                val isGenuine = versionChecker.verifyInstallation(currentVersionCode, apkHash)
+                
+                if (!isGenuine) {
+                    Log.wtf(TAG, "⚠️ CRITICAL: Installation verification failed!")
+                    showSecurityWarning()
+                } else {
+                    Log.d(TAG, "✅ Installation verified as genuine")
+                    
+                    // Check for available updates
+                    val result = versionChecker.forceUpdateCheck()
+                    result.onSuccess { info ->
+                        info?.let {
+                            if (it.isCritical && it.versionCode > currentVersionCode) {
+                                Log.wtf(TAG, "🚨 Critical update available: ${it.versionName}")
+                                showCriticalUpdateNotice(it)
+                            } else if (it.versionCode > currentVersionCode) {
+                                Log.i(TAG, "📦 Update available: ${it.versionName}")
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Verification error", e)
+            }
+        }
+    }
+    
+    /**
+     * Initialize I2P repository synchronization
+     */
+    private fun initializeI2pSync() {
+        val config = I2pdRepositoryManager.RepoConfig(
+            i2pDestination = getString(R.string.i2p_destination),
+            eepsitePath = getString(R.string.i2p_eepsite_path),
+            repoUrl = getString(R.string.fdroid_repo_url),
+            checkIntervalHours = 6
+        )
+        
+        i2pRepoManager.initializeConfig(config)
+        i2pRepoManager.startAutoSync()
+        
+        Log.d(TAG, "I2P repository sync initialized")
+    }
+    
+    /**
+     * Show security warning for tampered installation
+     */
+    private fun showSecurityWarning() {
+        runOnUiThread {
+            Toast.makeText(
+                this,
+                "⚠️ SECURITY WARNING: Installation may be compromised. Please download from official I2P repository.",
+                Toast.LENGTH_LONG
+            ).show()
+            
+            webView.evaluateJavascript("""
+                (function() {
+                    const alert = document.createElement('div');
+                    alert.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f00;color:#fff;padding:15px;text-align:center;font-family:monospace;z-index:9999;font-size:12px;';
+                    alert.innerHTML = '🛑 SECURITY ALERT<br>This installation appears to be tampered or outdated.<br>Download genuine version from: https://ktmocnexus.i2p/fdroid/repo';
+                    document.body.insertBefore(alert, document.body.firstChild);
+                })();
+            """, null)
+        }
+    }
+    
+    /**
+     * Show notice for critical update
+     */
+    private fun showCriticalUpdateNotice(versionInfo: VersionChecker.VersionInfo) {
+        runOnUiThread {
+            Toast.makeText(
+                this,
+                "🚨 Critical update available: ${versionInfo.versionName}",
+                Toast.LENGTH_LONG
+            ).show()
+            
+            webView.evaluateJavascript("""
+                (function() {
+                    const notice = document.createElement('div');
+                    notice.style.cssText = 'position:fixed;top:40px;left:0;right:0;background:#ff0;color:#000;padding:10px;text-align:center;font-family:monospace;z-index:9998;font-size:11px;';
+                    notice.innerHTML = '🚨 CRITICAL UPDATE: ${versionInfo.versionName}<br>${versionInfo.releaseNotes}';
+                    document.body.appendChild(notice);
+                })();
+            """, null)
+        }
+    }
+    
     override fun onDestroy() {
         super.onDestroy()
+        
+        // Stop periodic checks
+        versionChecker.stopPeriodicCheck()
+        i2pRepoManager.stopAutoSync()
         nexusScope.cancel()
         skeuomorphicEngine.reset()
     }

@@ -1,53 +1,52 @@
 ```
-# Android build artifacts
-*.apk
-*.aar
-*.dex
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
 *.so
+*.a
+*.out
 
-# Android build directories
-build/
+# Dependencies
+node_modules/
+venv/
+.venv/
+.julia/
+zig*/
+target/
 .gradle/
-local.properties
 
-# IDE files
-.idea/
-*.iml
-*.iws
-.vscode/
-
-# Temporary files
-*.tmp
-*.temp
+# Logs and temp files
 *.log
+*.tmp
+*.swp
+*.swo
 
 # Environment
 .env
 .env.local
 .env.*
 
-# Python related (if any Python components)
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.pytest_cache/
-.mypy_cache/
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Coverage reports
-coverage/
-htmlcov/
-*.coverage
-
-# OS generated files
+# System files
 .DS_Store
 Thumbs.db
 
-# Archives
-*.zip
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.7z
-*.rar
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Build directories
+dist/
+build/
 ```

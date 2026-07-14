@@ -1,0 +1,12 @@
+{
+  "versionCode": 1,
+  "versionName": "1.0.0",
+  "sha256Hash": "PLACEHOLDER_HASH_WILL_BE_REPLACED_BY_CI",
+  "releaseNotes": "Initial release - KTMOC NEXUS v4.1 with skeuomorphic UI, Hugging Face AI integration, WebUSB support, and I2P compatibility",
+  "isCritical": false,
+  "minRequiredVersion": 1,
+  "timestamp": 0,
+  "githubRepo": "ktmoc/nexus",
+  "fdroidRepoUrl": "https://ktmocnexus.i2p/fdroid/repo",
+  "i2pDestination": "YOUR_I2P_DESTINATION_HERE"
+}
