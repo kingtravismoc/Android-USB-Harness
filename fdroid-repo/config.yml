@@ -1,0 +1,20 @@
+# F-Droid Repository Configuration for KTMOC NEXUS
+# This file configures the local F-Droid repository served via I2P
+
+repo_url = https://ktmocnexus.i2p/fdroid/repo
+repo_name = KTMOC NEXUS Official Repository
+repo_description = Official F-Droid repository for KTMOC NEXUS - AI-powered debugging harness
+key_alias = ktmoc-key
+keystore = /path/to/secure/keystore.jks
+keystorepass_file = /secure/path/keystore.password
+
+# Update settings
+check_interval_hours = 6
+github_repo = ktmoc/nexus
+min_version_code = 1
+force_update_enabled = true
+
+# I2P Settings
+i2p_destination = YOUR_I2P_DESTINATION_HERE
+i2p_port = 8080
+eepsite_path = /var/lib/i2pd/eepsites/ktmocnexus

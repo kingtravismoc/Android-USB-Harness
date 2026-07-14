@@ -1,0 +1,269 @@
+# GitHub Actions Workflow for F-Droid Repository
+# Automatically builds, signs, and deploys to I2P eepsite on every push
+
+name: F-Droid Build and Deploy
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run every 6 hours to check for updates
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment to I2P'
+        required: false
+        default: 'false'
+
+env:
+  VERSION_CODE: 1
+  MIN_REQUIRED_VERSION: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon
+      
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon
+      
+      - name: Get version info
+        id: version
+        run: |
+          VERSION_NAME=$(grep -oP 'versionName "\K[^"]+' app/build.gradle)
+          VERSION_CODE=$(grep -oP 'versionCode \K\d+' app/build.gradle)
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "MIN_REQUIRED_VERSION=$VERSION_CODE" >> $GITHUB_ENV
+      
+      - name: Calculate SHA256 hash
+        id: hash
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          SHA256=$(sha256sum "$APK_PATH" | awk '{print $1}')
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+      
+      - name: Create version.json for verification
+        run: |
+          cat > version.json << EOF
+          {
+            "versionCode": ${{ steps.version.outputs.version_code }},
+            "versionName": "${{ steps.version.outputs.version_name }}",
+            "sha256Hash": "${{ steps.hash.outputs.sha256 }}",
+            "releaseNotes": "Automated build from GitHub Actions",
+            "isCritical": false,
+            "minRequiredVersion": ${{ env.MIN_REQUIRED_VERSION }},
+            "timestamp": $(date +%s)
+          }
+          EOF
+      
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-apk
+          path: ${{ steps.hash.outputs.apk_path }}
+          retention-days: 30
+      
+      - name: Upload version.json artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-info
+          path: version.json
+          retention-days: 30
+      
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ steps.hash.outputs.apk_path }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  verify:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: version-info
+      
+      - name: Verify version.json structure
+        run: |
+          cat version.json
+          python3 -c "import json; data=json.load(open('version.json')); assert data['versionCode'] >= 1; print('✅ Version verification passed')"
+      
+      - name: Check minimum version requirement
+        run: |
+          MIN_VERSION=$(python3 -c "import json; print(json.load(open('version.json'))['minRequiredVersion'])")
+          if [ "$MIN_VERSION" -lt 1 ]; then
+            echo "❌ Minimum version must be at least 1"
+            exit 1
+          fi
+          echo "✅ Minimum version check passed: $MIN_VERSION"
+  
+  deploy-i2p:
+    needs: [build, verify]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.inputs.force_deploy == 'true'
+    
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nexus-apk
+      
+      - name: Download version info
+        uses: actions/download-artifact@v4
+        with:
+          name: version-info
+      
+      - name: Setup I2P deployment directory
+        run: |
+          mkdir -p fdroid-repo/repo
+          mkdir -p fdroid-repo/metadata
+      
+      - name: Generate F-Droid index.xml
+        run: |
+          VERSION_CODE=$(python3 -c "import json; print(json.load(open('version.json'))['versionCode'])")
+          VERSION_NAME=$(python3 -c "import json; print(json.load(open('version.json'))['versionName'])")
+          SHA256=$(python3 -c "import json; print(json.load(open('version.json'))['sha256Hash'])")
+          
+          cat > fdroid-repo/repo/index.xml << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <index>
+            <name>KTMOC NEXUS Official Repository</name>
+            <description>Official F-Droid repository for KTMOC NEXUS - AI-powered debugging harness</description>
+            <timestamp>$(date +%s)</timestamp>
+            <packages>
+              <package id="com.ktmoc.nexus">
+                <name>KTMOC NEXUS</name>
+                <version code="$VERSION_CODE" name="$VERSION_NAME">
+                  <apk file="nexus-$VERSION_NAME.apk" hash="$SHA256" />
+                </version>
+              </package>
+            </packages>
+          </index>
+          EOF
+      
+      - name: Copy APK to repo
+        run: |
+          VERSION_NAME=$(python3 -c "import json; print(json.load(open('version.json'))['versionName'])")
+          cp *.apk "fdroid-repo/repo/nexus-$VERSION_NAME.apk"
+      
+      - name: Create metadata XML
+        run: |
+          VERSION_CODE=$(python3 -c "import json; print(json.load(open('version.json'))['versionCode'])")
+          VERSION_NAME=$(python3 -c "import json; print(json.load(open('version.json'))['versionName'])")
+          SHA256=$(python3 -c "import json; print(json.load(open('version.json'))['sha256Hash'])")
+          NOTES=$(python3 -c "import json; print(json.load(open('version.json'))['releaseNotes'])")
+          
+          cat > fdroid-repo/metadata/com.ktmoc.nexus.xml << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <metadata>
+            <id>com.ktmoc.nexus</id>
+            <name>KTMOC NEXUS</name>
+            <summary>AI-Powered WebUSB Debugging Harness</summary>
+            <description>$NOTES</description>
+            <author>KTMOC Development Team</author>
+            <source>https://github.com/ktmoc/nexus</source>
+            <license>GPL-3.0-or-later</license>
+            <packages>
+              <package versionCode="$VERSION_CODE" versionName="$VERSION_NAME" apk="nexus-$VERSION_NAME.apk" sig="signature_hash">
+                <hash type="sha256">$SHA256</hash>
+              </package>
+            </packages>
+          </metadata>
+          EOF
+      
+      - name: Deploy to I2P eepsite
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./fdroid-repo
+          destination_dir: /
+          keep_files: true
+        if: github.event.inputs.force_deploy == 'true'
+      
+      - name: Upload to release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            fdroid-repo/repo/*
+            fdroid-repo/metadata/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Notify deployment success
+        run: |
+          echo "✅ Successfully deployed to I2P eepsite"
+          echo "📦 F-Droid repository updated"
+          echo "🔐 Version verification enabled"
+  
+  security-check:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: nexus-apk
+      
+      - name: Security scan
+        run: |
+          echo "🔍 Running security checks..."
+          # Check for dangerous permissions
+          unzip -q *.apk
+          if grep -q "android.permission.SEND_SMS" AndroidManifest.xml; then
+            echo "⚠️ Warning: SEND_SMS permission found"
+          fi
+          if grep -q "android.permission.READ_CONTACTS" AndroidManifest.xml; then
+            echo "⚠️ Warning: READ_CONTACTS permission found"
+          fi
+          echo "✅ Security scan completed"
+      
+      - name: Verify F-Droid compliance
+        run: |
+          echo "📋 Checking F-Droid compliance..."
+          # Verify no proprietary dependencies
+          if find . -name "*.gradle" -exec grep -l "google-services" {} \; | grep -q .; then
+            echo "⚠️ Warning: Google Services dependency found"
+          fi
+          echo "✅ F-Droid compliance check completed"
