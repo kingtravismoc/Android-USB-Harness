@@ -1,0 +1,291 @@
+{
+  "framework": "USESOF",
+  "version": "1.0",
+  "watermark": "KING TRAVIS MICHAEL ODELL CORRIGAN // TSATTU",
+  "license": "kingtravismo@gmail.com",
+  
+  "expansion": {
+    "enabled": true,
+    "depth": 8,
+    "branchFactor": 4,
+    "recursive": true,
+    "autoVectorize": true,
+    "autoNormalize": true,
+    "mutation": {
+      "enabled": true,
+      "randomness": 0.25,
+      "rate": 0.5
+    }
+  },
+  
+  "banks": {
+    "concepts": [
+      {
+        "id": "concept.harassment",
+        "name": "harassment",
+        "category": "harmful_behavior",
+        "description": "Unwanted behavior that violates dignity or creates hostile environment.",
+        "embeddingOffset": 100,
+        "expandable": true,
+        "synonyms": ["bullying", "intimidation", "persecution"],
+        "opposites": ["respect", "support", "encouragement"],
+        "relatedConcepts": ["dehumanization", "hate_speech", "discrimination"],
+        "intensityVector": {
+          "hostility": 0.85,
+          "aggression": 0.70,
+          "malice": 0.75,
+          "cruelty": 0.65,
+          "humiliation": 0.80,
+          "dominance": 0.60,
+          "exclusion": 0.70
+        },
+        "dimensions": {
+          "intent": 0.75,
+          "severity": 0.80,
+          "frequency": 0.50,
+          "certainty": 0.70,
+          "impact": 0.85
+        },
+        "semanticAxes": {
+          "humanity": -0.7,
+          "empathy": -0.8,
+          "respect": -0.9,
+          "violence": 0.5,
+          "social_harm": 0.8,
+          "psychological_harm": 0.85
+        },
+        "detectionPatterns": [
+          "repeated unwanted contact",
+          "threatening behavior",
+          "intimidating actions"
+        ],
+        "weights": {
+          "classifierWeight": 1.5,
+          "severityWeight": 1.6,
+          "intentWeight": 1.3,
+          "impactWeight": 1.7
+        },
+        "expansionRules": {
+          "generateSynonyms": true,
+          "generateOpposites": true,
+          "generateIntensitySpectrum": true,
+          "generateRelatedConcepts": true,
+          "generateDimensions": true,
+          "generateSemanticAxes": true,
+          "generateBehaviorPatterns": true
+        }
+      },
+      
+      {
+        "id": "concept.dehumanization",
+        "name": "dehumanization",
+        "category": "harmful_behavior",
+        "description": "Reducing a person or group to less than human status.",
+        "embeddingOffset": 120,
+        "expandable": true,
+        "synonyms": ["objectification", "animalization", "demonization"],
+        "opposites": ["humanization", "respect", "empathy"],
+        "relatedConcepts": ["harassment", "hate_speech", "genocide_ideology"],
+        "intensityVector": {
+          "hostility": 0.95,
+          "aggression": 0.80,
+          "malice": 0.90,
+          "cruelty": 0.85,
+          "humiliation": 0.95,
+          "dominance": 0.75,
+          "exclusion": 0.92
+        },
+        "dimensions": {
+          "intent": 0.90,
+          "severity": 0.95,
+          "frequency": 0.40,
+          "certainty": 0.80,
+          "impact": 0.98
+        },
+        "semanticAxes": {
+          "humanity": -1.0,
+          "empathy": -0.95,
+          "respect": -0.95,
+          "violence": 0.7,
+          "social_harm": 0.95,
+          "psychological_harm": 0.98
+        },
+        "detectionPatterns": [
+          "less than human",
+          "undeserving of rights",
+          "like animals",
+          "vermin",
+          "subhuman"
+        ],
+        "weights": {
+          "classifierWeight": 2.0,
+          "severityWeight": 2.2,
+          "intentWeight": 1.8,
+          "impactWeight": 2.5
+        },
+        "expansionRules": {
+          "generateSynonyms": true,
+          "generateOpposites": true,
+          "generateIntensitySpectrum": true,
+          "generateRelatedConcepts": true,
+          "generateDimensions": true,
+          "generateSemanticAxes": true,
+          "generateBehaviorPatterns": true
+        }
+      },
+      
+      {
+        "id": "concept.respect",
+        "name": "respect",
+        "category": "positive_behavior",
+        "description": "Regard for the worth and dignity of others.",
+        "embeddingOffset": 1000,
+        "expandable": true,
+        "synonyms": ["esteem", "honor", "reverence", "admiration"],
+        "opposites": ["disrespect", "contempt", "derision"],
+        "relatedConcepts": ["empathy", "compassion", "tolerance"],
+        "intensityVector": {
+          "hostility": 0.0,
+          "aggression": 0.0,
+          "malice": 0.0,
+          "cruelty": 0.0,
+          "humiliation": 0.0,
+          "dominance": 0.0,
+          "exclusion": 0.0
+        },
+        "dimensions": {
+          "intent": 0.95,
+          "severity": 0.1,
+          "frequency": 0.6,
+          "certainty": 0.9,
+          "impact": 0.85
+        },
+        "semanticAxes": {
+          "humanity": 1.0,
+          "empathy": 0.9,
+          "respect": 1.0,
+          "violence": -0.5,
+          "social_harm": -0.8,
+          "psychological_harm": -0.9
+        },
+        "detectionPatterns": [
+          "thank you",
+          "I appreciate",
+          "your perspective is valid",
+          "I respect your decision"
+        ],
+        "weights": {
+          "classifierWeight": 1.0,
+          "severityWeight": 0.5,
+          "intentWeight": 1.2,
+          "impactWeight": 1.5
+        },
+        "expansionRules": {
+          "generateSynonyms": true,
+          "generateOpposites": true,
+          "generateIntensitySpectrum": true,
+          "generateRelatedConcepts": true,
+          "generateDimensions": true,
+          "generateSemanticAxes": true,
+          "generateBehaviorPatterns": true
+        }
+      },
+      
+      {
+        "id": "concept.empathy",
+        "name": "empathy",
+        "category": "positive_behavior",
+        "description": "Understanding and sharing the feelings of others.",
+        "embeddingOffset": 1010,
+        "expandable": true,
+        "synonyms": ["compassion", "understanding", "sympathy"],
+        "opposites": ["apathy", "indifference", "cruelty"],
+        "relatedConcepts": ["respect", "kindness", "support"],
+        "intensityVector": {
+          "hostility": 0.0,
+          "aggression": 0.0,
+          "malice": 0.0,
+          "cruelty": 0.0,
+          "humiliation": 0.0,
+          "dominance": 0.0,
+          "exclusion": 0.0
+        },
+        "dimensions": {
+          "intent": 0.98,
+          "severity": 0.05,
+          "frequency": 0.7,
+          "certainty": 0.85,
+          "impact": 0.9
+        },
+        "semanticAxes": {
+          "humanity": 1.0,
+          "empathy": 1.0,
+          "respect": 0.9,
+          "violence": -0.6,
+          "social_harm": -0.85,
+          "psychological_harm": -0.95
+        },
+        "detectionPatterns": [
+          "I understand how you feel",
+          "that must be difficult",
+          "I'm here for you",
+          "your feelings are valid"
+        ],
+        "weights": {
+          "classifierWeight": 1.0,
+          "severityWeight": 0.3,
+          "intentWeight": 1.5,
+          "impactWeight": 1.8
+        },
+        "expansionRules": {
+          "generateSynonyms": true,
+          "generateOpposites": true,
+          "generateIntensitySpectrum": true,
+          "generateRelatedConcepts": true,
+          "generateDimensions": true,
+          "generateSemanticAxes": true,
+          "generateBehaviorPatterns": true
+        }
+      }
+    ]
+  },
+  
+  "solver": {
+    "riskWeights": {
+      "hostility": 1.0,
+      "aggression": 0.8,
+      "malice": 0.9,
+      "dominance": 0.7,
+      "humiliation": 1.2,
+      "exclusion": 0.6
+    },
+    "benefitWeights": {
+      "empathy": 1.5,
+      "respect": 1.3,
+      "compassion": 1.4,
+      "inclusion": 1.0
+    },
+    "safetyThreshold": 0.7,
+    "epsilon": 1e-6
+  },
+  
+  "temporal": {
+    "decayLambda": 0.1,
+    "escalationWindow": 10
+  },
+  
+  "4D_analog": {
+    "kappa": 0.5,
+    "theta": 0.8,
+    "temporalJitter": 0.02
+  },
+  
+  "outputs": ["scalars", "vectors", "matrices", "tensors", "graphs", "relations", "prompts"],
+  
+  "generators": [
+    { "name": "T_squared", "expression": "T*T" },
+    { "name": "T_inverse", "expression": "1/T" },
+    { "name": "T_log", "expression": "log(T)" },
+    { "name": "T_exp", "expression": "exp(T)" }
+  ]
+}
