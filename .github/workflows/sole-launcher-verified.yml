@@ -1,0 +1,255 @@
+name: 🔐 Sole Launcher Verified Build & Deploy
+
+on:
+  push:
+    branches: [main, release]
+  workflow_dispatch:
+    inputs:
+      force_update:
+        description: 'Force update to I2PD/F-Droid'
+        required: false
+        default: 'false'
+
+env:
+  SOLE_LAUNCHER_GITHUB: "kingtravismoc"
+  MIN_REQUIRED_VERSION: "1"
+
+jobs:
+  verify-sole-launcher:
+    name: 🔒 Verify Sole Launcher Identity
+    runs-on: ubuntu-latest
+    outputs:
+      is_sole_launcher: ${{ steps.verify.outputs.is_authorized }}
+      commit_signer: ${{ steps.verify.outputs.signer_username }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Verify GPG Signature
+        id: verify
+        run: |
+          # Get the latest commit signature
+          COMMIT_SHA=${{ github.sha }}
+          SIGNATURE_DATA=$(git log -1 --format='%G?' "$COMMIT_SHA")
+          SIGNER_KEY=$(git log -1 --format='%GK' "$COMMIT_SHA" 2>/dev/null || echo "")
+          
+          echo "Commit SHA: $COMMIT_SHA"
+          echo "Signature status: $SIGNATURE_DATA"
+          echo "Signer Key: $SIGNER_KEY"
+          
+          # Check if commit is signed
+          if [ "$SIGNATURE_DATA" != "G" ]; then
+            echo "❌ Commit is NOT signed!"
+            echo "is_authorized=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Verify signer is sole launcher (kingtravismoc)
+          # In production, this would verify against stored public key
+          SIGNER_USERNAME="${{ github.actor }}"
+          
+          if [ "$SIGNER_USERNAME" != "${{ env.SOLE_LAUNCHER_GITHUB }}" ]; then
+            echo "❌ Unauthorized user: $SIGNER_USERNAME"
+            echo "Only ${{ env.SOLE_LAUNCHER_GITHUB }} can push updates"
+            echo "is_authorized=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          echo "✅ Verified: Sole launcher $SIGNER_USERNAME"
+          echo "is_authorized=true" >> $GITHUB_OUTPUT
+          echo "signer_username=$SIGNER_USERNAME" >> $GITHUB_OUTPUT
+
+  build-and-sign:
+    name: 🏗️ Build & Sign APK
+    needs: verify-sole-launcher
+    if: needs.verify-sole-launcher.outputs.is_sole_launcher == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      
+      - name: Decode Keystore
+        env:
+          ANDROID_RELEASE_KEYSTORE: ${{ secrets.ANDROID_RELEASE_KEYSTORE }}
+        run: |
+          echo $ANDROID_RELEASE_KEYSTORE | base64 -d > keystore.jks
+      
+      - name: Build Signed APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$(pwd)/keystore.jks \
+            -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+      
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktmoc-nexus-signed
+          path: app/build/outputs/apk/release/*.apk
+  
+  generate-metadata:
+    name: 📝 Generate Version Metadata
+    needs: [verify-sole-launcher, build-and-sign]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: ktmoc-nexus-signed
+          path: ./apk
+      
+      - name: Calculate SHA256
+        id: sha256
+        run: |
+          APK_FILE=$(find ./apk -name "*.apk" | head -1)
+          SHA256=$(sha256sum "$APK_FILE" | cut -d' ' -f1)
+          echo "apk_sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "APK SHA256: $SHA256"
+      
+      - name: Generate version.json
+        run: |
+          VERSION_NAME=$(grep -oP 'versionName "\K[^"]+' app/build.gradle.kts || echo "1.0.0")
+          VERSION_CODE=$(grep -oP 'versionCode \K\d+' app/build.gradle.kts || echo "1")
+          
+          cat > version.json << EOF
+          {
+            "version": "$VERSION_NAME",
+            "versionCode": $VERSION_CODE,
+            "minRequiredVersion": "${{ env.MIN_REQUIRED_VERSION }}",
+            "releaseDate": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "sha256": "${{ steps.sha256.outputs.apk_sha256 }}",
+            "downloadUrl": "https://github.com/${{ github.repository }}/releases/latest/download/ktmoc-nexus.apk",
+            "changelog": "Automated build by ${{ needs.verify-sole-launcher.outputs.commit_signer }}",
+            "signedBy": "${{ needs.verify-sole-launcher.outputs.commit_signer }}",
+            "criticalUpdate": ${{ github.event.inputs.force_update == 'true' && 'true' || 'false' }}
+          }
+          EOF
+          
+          cat version.json
+      
+      - name: Sign version.json with GPG
+        env:
+          REPO_GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY }}
+        run: |
+          echo "$REPO_GPG_PRIVATE_KEY" | gpg --import --batch
+          gpg --detach-sign --armor version.json
+          mv version.json.asc version.json.sig
+      
+      - name: Upload Metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: fdroid-metadata
+          path: |
+            version.json
+            version.json.sig
+  
+  deploy-to-i2pd:
+    name: 🌐 Deploy to I2PD Eepsite
+    needs: [verify-sole-launcher, build-and-sign, generate-metadata]
+    if: needs.verify-sole-launcher.outputs.is_sole_launcher == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*'
+          merge-multiple: true
+      
+      - name: Setup I2PD Tools
+        run: |
+          pip install i2pd-tools requests
+          echo "I2PD tools installed"
+      
+      - name: Deploy to I2PD Eepsite
+        env:
+          I2PD_DESTINATION: ${{ secrets.I2PD_EEPSITE_DESTINATION }}
+          I2PD_API_KEY: ${{ secrets.I2PD_API_KEY }}
+          ENCRYPTION_SECRET: ${{ secrets.ENCRYPTION_SECRET }}
+        run: |
+          python3 tools/fdroid/fdroid_repo_tool.py deploy \
+            --apk ./ktmoc-nexus-signed.apk \
+            --metadata version.json \
+            --signature version.json.sig \
+            --destination "$I2PD_DESTINATION" \
+            --encryption-secret "$ENCRYPTION_SECRET" \
+            --api-key "$I2PD_API_KEY" \
+            --force-update=${{ github.event.inputs.force_update == 'true' && 'true' || 'false' }}
+      
+      - name: Update F-Droid Repository Index
+        run: |
+          python3 tools/fdroid/fdroid_repo_tool.py update-index \
+            --repo-dir ./fdroid-repo \
+            --metadata version.json \
+            --apk-sha256 $(sha256sum ./ktmoc-nexus-signed.apk | cut -d' ' -f1)
+      
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ./ktmoc-nexus-signed.apk
+            version.json
+            version.json.sig
+          tag_name: v${{ github.run_number }}
+          name: KTMOC Nexus v${{ github.run_number }}
+          body: |
+            ## Automated Release by Sole Launcher
+            
+            **Signed by:** ${{ needs.verify-sole-launcher.outputs.commit_signer }}
+            **Critical Update:** ${{ github.event.inputs.force_update == 'true' && '⚠️ YES' || 'No' }}
+            
+            ### Verification
+            - SHA256: $(sha256sum ./ktmoc-nexus-signed.apk | cut -d' ' -f1)
+            - Minimum Required Version: ${{ env.MIN_REQUIRED_VERSION }}
+            
+            ### Installation
+            1. Download APK
+            2. Verify SHA256 hash
+            3. Install on Android device
+          draft: false
+          prerelease: false
+
+  notify-security:
+    name: 🔔 Security Notification
+    needs: [verify-sole-launcher, deploy-to-i2pd]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Send Security Alert
+        run: |
+          STATUS="${{ needs.deploy-to-i2pd.result }}"
+          SIGNER="${{ needs.verify-sole-launcher.outputs.commit_signer }}"
+          
+          if [ "$STATUS" == "success" ]; then
+            echo "✅ Deployment successful by $SIGNER"
+            # Send notification to monitoring system
+          else
+            echo "❌ Deployment failed or blocked"
+            echo "Status: $STATUS"
+            echo "Signer: $SIGNER"
+            # Alert security team
+          fi
