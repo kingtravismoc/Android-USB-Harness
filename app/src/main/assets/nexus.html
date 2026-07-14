@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KTMOC NEXUS v4.1</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root { --g: #0f0; --a: #0ff; --r: #f00; --y: #ff0; --m: #f0f; --bg: #000; 
+                 --transform-intensity: 0.5; --glow-color: transparent; --pulse-value: 1; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--g); font-family: 'VT323', monospace; height: 100vh; display: flex; flex-direction: column; overflow: hidden; animation: flk 0.15s infinite; }
+        @keyframes flk { 0%, 100% { opacity: 1; } 50% { opacity: 0.99; } }
+        .mn { flex: 1; display: grid; grid-template-columns: 1fr 1fr 280px; gap: 0; overflow: hidden; }
+        .pn { display: flex; flex-direction: column; border-right: 1px solid rgba(0, 255, 0, 0.3); overflow: hidden; }
+        .pn-hd { padding: 4px 8px; background: #001a00; border-bottom: 1px solid #030; font-size: 10px; letter-spacing: 1px; }
+        .pn-bd { flex: 1; overflow-y: auto; padding: 6px; font-size: 10px; }
+        #cv { width: 100%; height: 100%; display: block; background: #000; }
+        .cht { display: flex; flex-direction: column; gap: 0; overflow: hidden; }
+        .cht-log { flex: 1; overflow-y: auto; padding: 6px; font-size: 9px; line-height: 1.6; background: #000a00; }
+        .cht-msg { margin-bottom: 4px; padding: 2px 0; border-bottom: 1px solid rgba(0, 255, 0, 0.05); }
+        .cht-usr { color: var(--a); font-weight: bold; }
+        .cht-ai { color: var(--g); }
+        .cht-sys { color: var(--m); }
+        .cht-inp-box { display: flex; gap: 2px; padding: 6px; background: #001a00; border-top: 1px solid rgba(0, 255, 0, 0.3); }
+        #cht-in { flex: 1; background: #000; border: 1px solid var(--g); color: var(--g); padding: 4px; font-family: inherit; font-size: 10px; resize: none; height: 35px; }
+        #cht-in:focus { outline: none; border-color: var(--a); box-shadow: 0 0 6px rgba(0, 255, 255, 0.3); }
+        .sb { display: flex; flex-direction: column; overflow: hidden; }
+        .sb-pn { flex: 1; padding: 6px; overflow-y: auto; border-bottom: 1px solid rgba(0, 255, 0, 0.3); }
+        .sb-pn h4 { font-size: 10px; color: var(--a); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+        .bn { background: #001a00; border: 1px solid var(--g); color: var(--g); padding: 4px 6px; font-family: inherit; font-size: 10px; cursor: pointer; width: 100%; text-align: left; margin-bottom: 2px; transition: all 0.1s; }
+        .bn:hover { background: #003300; box-shadow: 0 0 6px rgba(0, 255, 0, 0.3); }
+        .bn.ac { border-color: var(--a); color: var(--a); background: #001a1a; }
+        .bn.dn { border-color: var(--r); color: var(--r); background: #1a0000; }
+        .inp { background: #000; border: 1px solid var(--g); color: var(--g); padding: 3px 4px; font-family: inherit; font-size: 9px; width: 100%; margin-bottom: 3px; }
+        .inp:focus { outline: none; border-color: var(--a); }
+        .txt-out { background: #000a00; border: 1px solid var(--g); color: var(--g); padding: 4px; font-family: inherit; font-size: 9px; line-height: 1.4; overflow-y: auto; max-height: 120px; }
+        .log { font-size: 9px; line-height: 1.4; margin-top: 4px; }
+        .log-l { margin-bottom: 1px; padding: 1px 0; border-bottom: 1px solid rgba(0, 255, 0, 0.05); }
+        .t { color: #060; margin-right: 3px; font-size: 8px; }
+        .ok { color: var(--g); }
+        .er { color: var(--r); }
+        .wr { color: var(--y); }
+        .sy { color: var(--a); }
+        .ml { color: var(--m); }
+        .ts { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 2px solid var(--g); padding: 12px 20px; font-size: 13px; z-index: 999; text-shadow: 0 0 10px var(--g); opacity: 0; transition: opacity 0.2s; letter-spacing: 1px; border-radius: 2px; }
+        .ts.show { opacity: 1; }
+        .ts.er { border-color: var(--r); text-shadow: 0 0 10px var(--r); color: var(--r); }
+        
+        /* Skeuomorphic transformations */
+        .transforming-element {
+            transition: all 0.3s ease;
+            box-shadow: 0 0 calc(15px * var(--transform-intensity)) var(--glow-color);
+            opacity: var(--pulse-value);
+        }
+        
+        @media (max-width: 1024px) { .mn { grid-template-columns: 1fr 1fr; } .sb { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="mn">
+        <!-- Screen/Canvas -->
+        <div class="pn">
+            <div class="pn-hd">▸ DISPLAY</div>
+            <div class="pn-bd"><canvas id="cv"></canvas></div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="cht">
+            <div class="pn-hd">▸ NEXUS CHAT</div>
+            <div class="cht-log" id="cht-log"></div>
+            <div class="cht-inp-box">
+                <textarea id="cht-in" placeholder="Type command or text..."></textarea>
+                <button class="bn ac" onclick="sendChat()" style="width:50px;margin-bottom:0;">SEND</button>
+            </div>
+        </div>
+
+        <!-- Sidebar: Controls + Views -->
+        <div class="sb">
+            <div class="sb-pn">
+                <h4>▸ Control</h4>
+                <button class="bn ac" onclick="parseText()">Parse Text</button>
+                <button class="bn" onclick="detectFile()">Detect Type</button>
+                <button class="bn wr" onclick="genShim()">Gen Shim</button>
+                <button class="bn dn" onclick="clrAll()">Clear</button>
+                <div style="font-size:9px;margin-top:6px;padding:4px;background:#001a00;border:1px solid #030;">
+                    <div><span>Mode:</span><span id="md" style="float:right;color:var(--a);">--</span></div>
+                    <div><span>Views:</span><span id="vc" style="float:right;color:var(--a);">0</span></div>
+                </div>
+                <h4 style="margin-top:8px;">▸ Text I/O</h4>
+                <textarea class="inp" id="txt-in" placeholder="Paste text, JSON, CSV, or raw data..."></textarea>
+                <div class="txt-out" id="txt-out" placeholder="Output here..."></div>
+            </div>
+
+            <div class="sb-pn" style="flex:0 0 auto;border-bottom:none;">
+                <h4>▸ Views (<span id="vl">0</span>)</h4>
+                <div id="vlist" style="font-size:9px;max-height:100px;overflow-y:auto;"></div>
+            </div>
+
+            <div class="log" id="lg"></div>
+        </div>
+    </div>
+    <div class="ts" id="ts"></div>
+
+    <script>
+        const K = { gm: '', bank: JSON.parse(localStorage.getItem('K_BANK') || '{"scans":[],"views":{}}') };
+        const S = { mode: 'chat', txt: '', views: {}, active: null, msgs: [] };
+        const $ = id => document.getElementById(id);
+        const ctx = $('cv').getContext('2d');
+
+        function L(m, c = 'ok') {
+            const t = new Date().toTimeString().slice(0, 5);
+            const d = document.createElement('div');
+            d.className = 'log-l';
+            d.innerHTML = `<span class="t">[${t}]</span><span class="${c}">${m}</span>`;
+            $('lg').appendChild(d);
+            $('lg').scrollTop = $('lg').scrollHeight;
+            while ($('lg').children.length > 200) $('lg').removeChild($('lg').firstChild);
+        }
+
+        function toast(m, cls = '') {
+            $('ts').textContent = m;
+            $('ts').className = 'ts ' + cls + ' show';
+            setTimeout(() => $('ts').classList.remove('show'), 1800);
+        }
+
+        function saveBank() { localStorage.setItem('K_BANK', JSON.stringify(K.bank)); }
+
+        async function api(prompt, img = null) {
+            // Use Android bridge if available
+            if (window.AndroidBridge) {
+                try {
+                    return await window.AndroidBridge.generateShim('text', prompt);
+                } catch (e) {
+                    L('Android bridge error: ' + e.message, 'er');
+                }
+            }
+            
+            // Fallback to direct API
+            if (!K.gm) { L('API key not set', 'wr'); return 'FALLBACK'; }
+            try {
+                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${K.gm}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+                    })
+                });
+                if (!r.ok) { L('API error: ' + r.status, 'er'); return null; }
+                const j = await r.json();
+                return j.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            } catch (e) { L('API fail: ' + e.message, 'er'); return null; }
+        }
+
+        class ViewFactory {
+            constructor() { this.types = {}; this.register('text', this.textView); this.register('json', this.jsonView); this.register('csv', this.csvView); }
+            register(name, renderer) { this.types[name] = renderer; }
+            async create(name, data) {
+                if (this.types[name]) return this.types[name](data);
+                const shim = await this.genShim(name, data);
+                return shim || `<div style="color:#f00;">Unknown type: ${name}</div>`;
+            }
+            async genShim(name, data) {
+                const prompt = `Generate a JS function to render this data as HTML for terminal display. Return ONLY valid JS:
+function render(data) { return '<div>...' + data + '</div>'; }
+Data sample: ${data.substring(0, 100)}`;
+                const res = await api(prompt);
+                if (res && res.includes('function render')) {
+                    try { eval(res); return render(data); } catch (e) { L('Shim error: ' + e.message, 'er'); }
+                }
+                return null;
+            }
+            textView = (data) => `<pre style="color:var(--g);font-size:9px;overflow-x:auto;">${data.substring(0, 500)}</pre>`;
+            jsonView = (data) => {
+                try {
+                    const obj = JSON.parse(data);
+                    const lines = JSON.stringify(obj, null, 2).split('\n').map((l, i) => `<div>${i + 1}: ${l}</div>`);
+                    return `<div style="color:var(--a);font-size:9px;line-height:1.3;max-height:200px;overflow-y:auto;">${lines.join('')}</div>`;
+                } catch { return `<div style="color:var(--r);">Invalid JSON</div>`; }
+            };
+            csvView = (data) => {
+                const lines = data.trim().split('\n');
+                const rows = lines.map(l => `<tr>${l.split(',').map(c => `<td style="padding:2px;border:1px solid #060;">${c}</td>`).join('')}</tr>`);
+                return `<table style="border-collapse:collapse;font-size:8px;color:var(--g);">${rows.join('')}</table>`;
+            };
+        }
+        const factory = new ViewFactory();
+
+        function detectFile() {
+            const txt = $('txt-in').value;
+            if (!txt) { L('No input', 'wr'); return; }
+            let type = 'text';
+            if (txt.trim()[0] === '{' || txt.trim()[0] === '[') type = 'json';
+            else if (txt.includes(',') && txt.includes('\n')) type = 'csv';
+            $('md').textContent = type;
+            L('Detected: ' + type, 'sy');
+            toast('📋 Type: ' + type.toUpperCase());
+        }
+
+        async function parseText() {
+            const txt = $('txt-in').value;
+            if (!txt) { L('Empty input', 'wr'); return; }
+            $('md').textContent = 'processing...';
+            L('Parsing...', 'sy');
+
+            let type = 'text';
+            try { JSON.parse(txt); type = 'json'; } catch { }
+            if (txt.includes(',') && txt.includes('\n') && type === 'text') type = 'csv';
+
+            const html = await factory.create(type, txt);
+            $('txt-out').innerHTML = html || 'Parse failed';
+            const view = { name: type + '-' + Date.now(), type, data: txt, html };
+            S.views[view.name] = view;
+            K.bank.views[view.name] = view;
+            saveBank();
+            renderViewList();
+            $('md').textContent = type;
+            L('Parsed as ' + type + ': ' + txt.length + ' chars', 'ok');
+            toast('✅ PARSED: ' + type);
+        }
+
+        async function genShim() {
+            const txt = $('txt-in').value;
+            if (!txt) { L('No input', 'wr'); return; }
+            L('Generating shim...', 'ml');
+            const prompt = `Create a minimal HTML view function for this data.
+Return valid JS only: function render(data) { return '<div>...</div>'; }
+Data: ${txt.substring(0, 200)}`;
+            const res = await api(prompt);
+            if (res && res.includes('function')) {
+                $('txt-out').innerHTML = `<div style="color:#0f0;font-size:9px;line-height:1.2;"><code>${res.substring(0, 300)}</code></div>`;
+                L('Shim generated', 'ok');
+                toast('🧬 SHIM CREATED');
+            } else {
+                L('Shim gen failed', 'er');
+                toast('❌ SHIM FAILED', 'er');
+            }
+        }
+
+        function renderViewList() {
+            const vl = Object.keys(S.views);
+            $('vl').textContent = vl.length;
+            $('vc').textContent = vl.length;
+            $('vlist').innerHTML = vl.length === 0 ? '<div style="color:#030;">No views</div>' :
+                vl.map((name, i) => `<div style="padding:2px;cursor:pointer;border:1px solid #030;margin:1px;background:#001a00;" onclick="switchView('${name}')">${i + 1}. ${name.substring(0, 20)}</div>`).join('');
+        }
+
+        function switchView(name) {
+            const v = S.views[name];
+            if (!v) return;
+            S.active = name;
+            $('txt-out').innerHTML = v.html || '<div>No HTML</div>';
+            L('Switched to: ' + name, 'sy');
+        }
+
+        async function sendChat() {
+            const msg = $('cht-in').value.trim();
+            if (!msg) return;
+            $('cht-in').value = '';
+
+            const uMsg = document.createElement('div');
+            uMsg.className = 'cht-msg';
+            uMsg.innerHTML = `<span class="cht-usr">YOU:</span> ${msg}`;
+            $('cht-log').appendChild(uMsg);
+
+            if (msg.startsWith('/')) {
+                await handleCommand(msg);
+            } else {
+                const res = await api('Brief response to: ' + msg);
+                const aMsg = document.createElement('div');
+                aMsg.className = 'cht-msg';
+                aMsg.innerHTML = `<span class="cht-ai">AI:</span> ${res || 'No response'}`;
+                $('cht-log').appendChild(aMsg);
+                L('Chat: ' + msg.substring(0, 40), 'sy');
+            }
+            $('cht-log').scrollTop = $('cht-log').scrollHeight;
+        }
+
+        async function handleCommand(cmd) {
+            if (cmd === '/help') {
+                const msg = document.createElement('div');
+                msg.className = 'cht-msg';
+                msg.innerHTML = `<span class="cht-sys">HELP:</span><br>/help /parse /detect /clear`;
+                $('cht-log').appendChild(msg);
+            } else if (cmd === '/parse') {
+                await parseText();
+            } else if (cmd === '/detect') {
+                detectFile();
+            } else if (cmd === '/clear') {
+                clrAll();
+            }
+            $('cht-log').scrollTop = $('cht-log').scrollHeight;
+        }
+
+        function clrAll() {
+            $('txt-in').value = '';
+            $('txt-out').innerHTML = '';
+            $('cht-log').innerHTML = '';
+            $('md').textContent = 'chat';
+            S.views = {};
+            S.active = null;
+            S.msgs = [];
+            renderViewList();
+            L('All cleared', 'wr');
+            toast('🗑 CLEARED');
+        }
+
+        function resizeCanvas() {
+            const r = $('cv').parentElement.getBoundingClientRect();
+            $('cv').width = r.width;
+            $('cv').height = r.height;
+        }
+
+        function init() {
+            const gm = localStorage.getItem('gm_key') || '';
+            if (gm) {
+                K.gm = gm.trim();
+                L('Gemini API loaded ✓', 'ok');
+            } else {
+                L('Demo mode (using Hugging Face)', 'wr');
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); sendChat(); }
+                if (e.key === 'Escape') { e.preventDefault(); clrAll(); }
+            });
+            renderViewList();
+            L('KTMOC NEXUS v4.1 ready', 'ml');
+            $('md').textContent = 'chat';
+            toast('🚀 NEXUS INITIALIZED');
+
+            const wMsg = document.createElement('div');
+            wMsg.className = 'cht-msg';
+            wMsg.innerHTML = `<span class="cht-sys">SYSTEM:</span> Welcome to NEXUS. Use /help for commands.`;
+            $('cht-log').appendChild(wMsg);
+        }
+
+        window.help = () => {
+            console.log(`KTMOC NEXUS Commands:
+/help, /parse, /detect, /clear
+parseText() — Parse input as JSON/CSV/Text
+detectFile() — Auto-detect file type
+genShim() — Generate custom renderer
+sendChat() — Send to AI
+switchView(name) — Switch active view
+Ctrl+Enter — Send chat
+ESC — Clear all`);
+        };
+
+        window.parseText = parseText;
+        window.detectFile = detectFile;
+        window.genShim = genShim;
+        window.sendChat = sendChat;
+        window.switchView = switchView;
+        window.clrAll = clrAll;
+
+        init();
+        console.log('%c KTMOC NEXUS v4.1 %c Ready | help()', 'color:#0f0;font-size:14px;', 'color:#aaa;');
+    </script>
+</body>
+</html>

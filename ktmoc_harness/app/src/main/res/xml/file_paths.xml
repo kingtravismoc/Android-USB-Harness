@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- File paths for FileProvider -->
+<paths>
+    <!-- Export directory for K-Bank data -->
+    <external-path name="exports" path="KTMOC/exports/" />
+    
+    <!-- Cache directory for temporary files -->
+    <cache-path name="cache" path="/" />
+    
+    <!-- Files directory for downloads -->
+    <files-path name="files" path="/" />
+</paths>

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KTMOC CRT v4.0+ - Android Harness</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root { --g: #0f0; --a: #0ff; --r: #f00; --y: #ff0; --m: #f0f; --bg: #000; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--g); font-family: 'VT323', monospace; overflow: hidden; height: 100vh; display: flex; flex-direction: column; user-select: none; animation: flk 0.15s infinite; }
+        @keyframes flk { 0%, 100% { opacity: 1; } 50% { opacity: 0.99; } }
+        @keyframes blk { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes glw { 0%, 100% { box-shadow: 0 0 8px var(--g); } 50% { box-shadow: 0 0 20px var(--g), 0 0 40px rgba(0, 255, 0, 0.5); } }
+        .crt { position: relative; flex: 1; overflow: hidden; }
+        .crt::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.12) 0px 1px, transparent 1px 3px); pointer-events: none; z-index: 100; }
+        .crt::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 90%); pointer-events: none; z-index: 101; }
+        .hdr { background: #001a00; border-bottom: 1px solid var(--g); padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; letter-spacing: 2px; text-shadow: 0 0 10px var(--g); z-index: 103; position: relative; }
+        .hdr .brn { display: flex; align-items: center; gap: 8px; }
+        .hdr .st { display: flex; gap: 10px; align-items: center; font-size: 12px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--r); box-shadow: 0 0 10px var(--r); animation: blk 2s infinite; }
+        .dot.on { background: var(--g); box-shadow: 0 0 12px var(--g); animation: none; }
+        .dot.busy { background: var(--y); animation: blk 0.5s infinite; }
+        .mn { flex: 1; display: grid; grid-template-columns: 1fr 320px; gap: 0; overflow: hidden; position: relative; z-index: 1; }
+        .scr { position: relative; background: #000; border-right: 1px solid var(--g); overflow: hidden; display: flex; flex-direction: column; }
+        .shd { padding: 4px 10px; background: #001a00; border-bottom: 1px solid #030; font-size: 11px; letter-spacing: 1px; }
+        .scb { flex: 1; position: relative; overflow: hidden; background: #000; }
+        #cv { width: 100%; height: 100%; display: block; }
+        #ov { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+        .vb { position: absolute; border: 2px solid var(--a); cursor: pointer; transition: all 0.12s ease; border-radius: 2px; background: rgba(0, 255, 255, 0.04); z-index: 11; pointer-events: auto; }
+        .vb:hover { border-color: #fff; background: rgba(0, 255, 255, 0.15); box-shadow: 0 0 10px rgba(0, 255, 255, 0.4); }
+        .vb.foc { border-color: var(--g); background: rgba(0, 255, 0, 0.2); box-shadow: 0 0 16px var(--g), 0 0 32px rgba(0, 255, 0, 0.3); animation: glw 1.8s ease-in-out infinite; }
+        .vl { position: absolute; top: -20px; left: -1px; font-size: 10px; background: var(--a); color: #000; padding: 2px 6px; white-space: nowrap; border-radius: 2px; pointer-events: none; font-weight: bold; }
+        .vb.foc .vl { background: var(--g); box-shadow: 0 0 8px var(--g); }
+        .sd { display: flex; flex-direction: column; overflow: hidden; z-index: 5; background: #000500; border-left: 1px solid rgba(0, 255, 0, 0.3); }
+        .pn { border-bottom: 1px solid rgba(0, 255, 0, 0.3); padding: 8px; overflow-y: auto; }
+        .pn h3 { font-size: 11px; margin-bottom: 5px; text-shadow: 0 0 10px var(--g); letter-spacing: 2px; color: var(--a); text-transform: uppercase; }
+        .bn { background: #001a00; border: 1px solid var(--g); color: var(--g); padding: 5px 10px; font-family: inherit; font-size: 12px; cursor: pointer; width: 100%; margin-bottom: 3px; text-align: left; letter-spacing: 1px; transition: all 0.15s; border-radius: 2px; }
+        .bn:hover { background: #003300; box-shadow: 0 0 8px rgba(0, 255, 0, 0.3); }
+        .bn:active { background: #004400; transform: scale(0.97); }
+        .bn.ac { border-color: var(--a); color: var(--a); background: #001a1a; }
+        .bn.ac:hover { background: #003333; box-shadow: 0 0 8px rgba(0, 255, 255, 0.3); }
+        .bn.dn { border-color: var(--r); color: var(--r); background: #1a0000; }
+        .bn.dn:hover { background: #330000; box-shadow: 0 0 8px rgba(255, 0, 0, 0.3); }
+        .inp { background: #000; border: 1px solid var(--g); color: var(--g); padding: 5px 8px; font-family: inherit; font-size: 12px; width: 100%; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .inp:focus { outline: none; border-color: var(--a); box-shadow: 0 0 8px rgba(0, 255, 255, 0.3); }
+        .lg { flex: 1; overflow-y: auto; padding: 8px; font-size: 10px; line-height: 1.5; background: #000a00; min-height: 0; }
+        .lg::-webkit-scrollbar { width: 3px; }
+        .lg::-webkit-scrollbar-thumb { background: #0a0; border-radius: 2px; }
+        .l { margin-bottom: 1px; padding: 1px 0; border-bottom: 1px solid rgba(0, 255, 0, 0.05); }
+        .t { color: #060; margin-right: 5px; font-size: 9px; }
+        .ok { color: var(--g); }
+        .er { color: var(--r); }
+        .wr { color: var(--y); }
+        .sy { color: var(--a); }
+        .ml { color: var(--m); }
+        .el { flex: 1; overflow-y: auto; font-size: 10px; min-height: 0; }
+        .ei { padding: 3px 6px; cursor: pointer; border-bottom: 1px solid rgba(0, 255, 0, 0.05); transition: background 0.1s; display: flex; align-items: center; gap: 6px; }
+        .ei:hover { background: rgba(0, 255, 0, 0.05); }
+        .ei.act { background: #003300; border-left: 3px solid var(--g); }
+        .ph { text-align: center; color: #030; padding: 60px 20px; font-size: 16px; letter-spacing: 2px; }
+        .ts { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 2px solid var(--g); padding: 16px 28px; font-size: 16px; z-index: 999; text-shadow: 0 0 10px var(--g); pointer-events: none; opacity: 0; transition: opacity 0.3s; letter-spacing: 2px; border-radius: 4px; }
+        .ts.show { opacity: 1; }
+        .ts.er { border-color: var(--r); text-shadow: 0 0 10px var(--r); color: var(--r); }
+        @media (max-width: 768px) { .mn { grid-template-columns: 1fr; grid-template-rows: 1fr auto; } .sd { flex-direction: row; flex-wrap: wrap; max-height: 220px; border-left: none; border-top: 1px solid var(--g); } .pn { flex: 1; min-width: 140px; max-height: 220px; } }
+    </style>
+</head>
+<body>
+    <div class="crt">
+        <div class="hdr">
+            <div class="brn"><span style="color:var(--a)">◆</span> KTMOC v4.0+ <span style="font-size:9px;color:#060;">// ANDROID HARNESS + WEBUSB</span></div>
+            <div class="st"><span id="st">OFFLINE</span><div class="dot" id="dt"></div></div>
+        </div>
+        <div class="mn">
+            <div class="scr">
+                <div class="shd"><span>▸ REMOTE DISPLAY</span><span id="res" style="float:right;">--</span></div>
+                <div class="scb">
+                    <div class="ph" id="ph"><div style="font-size:48px;color:#020;margin-bottom:10px;">⬡</div>CONNECT TO BEGIN<br><span style="font-size:10px;color:#040;">Native WebUSB | AI-Powered</span></div>
+                    <canvas id="cv" style="display:none;"></canvas>
+                    <div id="ov"></div>
+                </div>
+            </div>
+            <div class="sd">
+                <div class="pn">
+                    <button class="bn ac" onclick="conn()"><span>🔌</span> CONNECT (WebUSB)</button>
+                    <button class="bn" onclick="showAiConfig()"><span>⚙</span> AI CONFIG</button>
+                    <div style="font-size:10px;line-height:1.8;"><div><span>Method:</span><span class="sy" id="sm" style="float:right;">--</span></div><div><span>Focus:</span><span class="sy" id="sf" style="float:right;">--</span></div><div><span>Scan #:</span><span class="sy" id="sn" style="float:right;">0</span></div></div>
+                </div>
+                <div class="pn">
+                    <h3>▸ CONTROLS</h3>
+                    <button class="bn" onclick="cap()"><span>📷</span> CAPTURE</button>
+                    <button class="bn ac" onclick="ana()"><span>🔍</span> ANALYZE (AI)</button>
+                    <button class="bn wr" onclick="syn()"><span>🧬</span> SYNTHESIZE</button>
+                    <button class="bn" onclick="gap()"><span>🔍</span> GAP CHECK</button>
+                    <button class="bn ac" onclick="diag()"><span>🩺</span> DIAGNOSE</button>
+                    <button class="bn dn" onclick="clr()"><span>🗑</span> CLEAR</button>
+                </div>
+                <div class="pn" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+                    <h3>▸ ELEMENTS (<span id="ec">0</span>)</h3>
+                    <div class="el" id="el"><div style="color:#030;text-align:center;padding:20px;">No elements</div></div>
+                </div>
+                <div class="lg" id="lg"></div>
+            </div>
+        </div>
+    </div>
+    <div class="ts" id="ts"></div>
+
+    <script>
+        // Native bridge detection
+        const isNative = typeof window.AndroidUsb !== 'undefined';
+        const hasAi = typeof window.AiEngine !== 'undefined';
+        const hasStorage = typeof window.KBankStorage !== 'undefined';
+        
+        const K = { gm: '', cl: '', bank: JSON.parse(hasStorage ? (KBankStorage.getData('K_BANK') || '{"scans":[],"registry":{}}') : (localStorage.getItem('K_BANK') || '{"scans":[],"registry":{}}')) };
+        const S = { c: 0, e: [], f: -1, x: 50, y: 50, img: null, conn: '', proc: false, sn: 0, hist: [] };
+        const $ = (id) => document.getElementById(id);
+        const ctx = $('cv').getContext('2d');
+
+        function L(m, c = 'ok') {
+            const t = new Date().toTimeString().slice(0, 8);
+            const d = document.createElement('div');
+            d.className = 'l';
+            d.innerHTML = `<span class="t">${t}</span><span class="${c}">${m}</span>`;
+            $('lg').appendChild(d);
+            $('lg').scrollTop = $('lg').scrollHeight;
+            while ($('lg').children.length > 300) $('lg').removeChild($('lg').firstChild);
+        }
+
+        function toast(m, cls = '') {
+            $('ts').textContent = m;
+            $('ts').className = 'ts ' + cls + ' show';
+            setTimeout(() => $('ts').classList.remove('show'), 2000);
+        }
+
+        function saveBank() { 
+            if (hasStorage) {
+                KBankStorage.setData('K_BANK', JSON.stringify(K.bank));
+            } else {
+                localStorage.setItem('K_BANK', JSON.stringify(K.bank));
+            }
+        }
+
+        async function api(prompt, img) {
+            if (hasAi) {
+                try {
+                    return await new Promise((resolve) => {
+                        window.onAiResponse = (response) => resolve(response);
+                        window.onAiError = (error) => resolve('ERROR: ' + error);
+                        AiEngine.inferWithAi(prompt, img);
+                    });
+                } catch (e) { L('AI fallback: ' + e.message, 'wr'); }
+            }
+            
+            // Gemini fallback
+            if (K.gm) {
+                try {
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${K.gm}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }, ...(img ? [{ inline_data: { mime_type: 'image/png', data: img } }] : [])] }],
+                            generationConfig: { temperature: 0.2, topP: 0.95, maxOutputTokens: 2048 }
+                        })
+                    });
+                    if (r.ok) {
+                        const j = await r.json();
+                        return j.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    }
+                } catch (e) { L('Gemini fallback: ' + e.message, 'wr'); }
+            }
+            
+            L('Using fallback synthesis...', 'sy');
+            return 'FALLBACK: ' + prompt.substring(0, 50);
+        }
+
+        function showAiConfig() {
+            if (isNative) {
+                // Use native dialog
+                alert('AI Configuration:\nService: ' + (hasAi ? AiEngine.getServiceConfig() : 'Not available'));
+            } else {
+                const serviceName = prompt('AI Service Name (e.g., huggingface):', 'huggingface');
+                const model = prompt('Model:', 'microsoft/Phi-3-mini-4k-instruct');
+                const apiKey = prompt('API Key (optional):', '');
+                const noKey = confirm('Use HuggingFace No-Key Mode?');
+                
+                if (serviceName && model) {
+                    if (hasAi) {
+                        AiEngine.configureService(serviceName, model, apiKey || '', noKey);
+                    }
+                    L('AI configured: ' + serviceName + '/' + model, 'ok');
+                }
+            }
+        }
+
+        function init() {
+            L('KTMOC CRT v4.0+ READY — ' + (isNative ? 'NATIVE ANDROID' : 'WEB MODE'), 'ml');
+            L('WebUSB: ' + (isNative ? 'Available' : 'Not available'), isNative ? 'ok' : 'wr');
+            L('AI Engine: ' + (hasAi ? 'Ready' : 'Fallback mode'), hasAi ? 'ok' : 'sy');
+            
+            resizeCanvas();
+            window.addEventListener('resize', () => { resizeCanvas(); if (S.img) redraw(); });
+            document.addEventListener('keydown', handleKeys);
+        }
+
+        function resizeCanvas() {
+            const r = $('cv').parentElement.getBoundingClientRect();
+            $('cv').width = r.width;
+            $('cv').height = r.height;
+            $('res').textContent = Math.round(r.width) + '×' + Math.round(r.height);
+        }
+
+        function redraw() {
+            if (!S.img) return;
+            const img = new Image();
+            img.onload = () => {
+                const w = $('cv').width, h = $('cv').height;
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, w, h);
+                const ratio = img.width / img.height, cvRatio = w / h;
+                let dw, dh, dx, dy;
+                if (ratio > cvRatio) { dw = w; dh = w / ratio; dx = 0; dy = (h - dh) / 2; }
+                else { dh = h; dw = h * ratio; dx = (w - dw) / 2; dy = 0; }
+                ctx.drawImage(img, dx, dy, dw, dh);
+            };
+            img.src = S.img;
+        }
+
+        async function conn() {
+            if (S.c) {
+                S.c = 0;
+                $('dt').className = 'dot';
+                $('st').textContent = 'OFFLINE';
+                $('ph').style.display = 'block';
+                $('cv').style.display = 'none';
+                $('ov').innerHTML = '';
+                S.e = [];
+                S.f = -1;
+                L('DISCONNECTED', 'wr');
+                toast('🔻 DISCONNECTED');
+                return;
+            }
+            S.c = 1;
+            S.conn = isNative ? 'NATIVE_WEBUSB' : 'SIMULATION';
+            $('dt').className = 'dot on';
+            $('st').textContent = 'ONLINE';
+            $('sm').textContent = S.conn;
+            $('ph').style.display = 'none';
+            $('cv').style.display = 'block';
+            resizeCanvas();
+            
+            if (isNative) {
+                try {
+                    const devices = AndroidUsb.getDevices();
+                    L('USB Devices: ' + devices, 'sy');
+                    AndroidUsb.requestDevice();
+                } catch (e) {
+                    L('WebUSB error: ' + e.message, 'er');
+                }
+            }
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, $('cv').width, $('cv').height);
+            ctx.fillStyle = '#0f0';
+            ctx.font = '16px "VT323"';
+            ctx.textAlign = 'center';
+            ctx.fillText('DEVICE READY — CAPTURE TO BEGIN', $('cv').width / 2, $('cv').height / 2);
+            S.img = $('cv').toDataURL('image/png');
+            L('Connected: ' + S.conn, 'ok');
+            toast('⚡ CONNECTED');
+        }
+
+        async function cap() {
+            if (!S.c) { toast('CONNECT FIRST', 'er'); L('Not connected', 'wr'); return; }
+            if (S.proc) return;
+            S.proc = true;
+            L('Capturing...', 'sy');
+            $('dt').className = 'dot busy';
+
+            const w = $('cv').width, h = $('cv').height;
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, w, h);
+            const ux = w * 0.05, uy = h * 0.05, uw = w * 0.9, uh = h * 0.9;
+            ctx.fillStyle = '#2d2d44';
+            ctx.fillRect(ux, uy, uw, uh);
+            ctx.fillStyle = '#0f0';
+            ctx.font = '12px "VT323"';
+            for (let i = 0; i < 6; i++) {
+                ctx.fillText('Button ' + (i + 1), ux + 20, uy + 40 + i * 50);
+                ctx.strokeStyle = '#0f0';
+                ctx.strokeRect(ux + 10, uy + 25 + i * 50, 100, 30);
+            }
+            S.img = $('cv').toDataURL('image/png');
+            S.e = [];
+            S.f = -1;
+            L('Screen captured', 'ok');
+            $('dt').className = 'dot on';
+            S.proc = false;
+            toast('✅ CAPTURED');
+        }
+
+        async function ana() {
+            if (!S.img) { L('Capture first', 'wr'); toast('⚠️ NO IMAGE', 'er'); return; }
+            if (S.proc) return;
+            S.proc = true;
+            L('AI analysis...', 'ml');
+            $('dt').className = 'dot busy';
+
+            const prompt = `Analyze this UI. Return ONLY JSON:
+{"elements":[{"x":<0-100>,"y":<0-100>,"w":<width%>,"h":<height%>,"text":"<label>","type":"button|card|menu|text|input","confidence":<0-1>}]}
+Detect 8+ elements. Sort by position.`;
+
+            try {
+                const b64 = S.img.split(',')[1];
+                const res = await api(prompt, b64);
+                const m = res.match(/\{[\s\S]*\}/);
+                if (m) {
+                    const data = JSON.parse(m[0]);
+                    S.e = (data.elements || []).filter(e => e.x >= 0 && e.y >= 0 && e.w > 0 && e.h > 0).map(e => ({
+                        x: e.x, y: e.y, w: e.w, h: e.h, text: e.text || 'Element', type: e.type || 'unknown', conf: e.confidence || 0.7
+                    }));
+                    if (S.e.length > 0) {
+                        S.f = 0;
+                        $('sf').textContent = S.e[0].text;
+                        K.bank.registry[S.e[0].text] = S.e[0];
+                    }
+                    render();
+                    updateList();
+                    K.bank.scans.push({ time: Date.now(), count: S.e.length, elements: S.e });
+                    saveBank();
+                    S.sn++;
+                    $('sn').textContent = S.sn;
+                    L('AI detected ' + S.e.length + ' elements', 'ml');
+                    toast('✅ ' + S.e.length + ' ELEMENTS');
+                }
+            } catch (e) {
+                L('AI error: ' + e.message, 'er');
+                toast('❌ FAILED', 'er');
+            }
+            $('dt').className = 'dot on';
+            S.proc = false;
+        }
+
+        function syn() {
+            if (K.bank.scans.length < 2) { L('Need 2+ scans to synthesize', 'wr'); return; }
+            const recent = K.bank.scans.slice(-3);
+            const merged = {};
+            recent.forEach(scan => {
+                scan.elements.forEach(e => {
+                    const key = e.text;
+                    merged[key] = merged[key] || { ...e, weight: 0 };
+                    merged[key].weight += e.conf;
+                });
+            });
+            S.e = Object.values(merged).sort((a, b) => b.weight - a.weight);
+            if (S.e.length > 0) {
+                S.f = 0;
+                $('sf').textContent = S.e[0].text;
+            }
+            render();
+            updateList();
+            L('Synthesized ' + S.e.length + ' elements from ' + recent.length + ' scans', 'ml');
+            toast('🧬 SYNTHESIS COMPLETE');
+        }
+
+        function gap() {
+            if (S.e.length === 0) { L('No elements to check', 'wr'); return; }
+            const missing = [];
+            Object.keys(K.bank.registry).forEach(k => {
+                if (!S.e.some(e => e.text === k)) missing.push(k);
+            });
+            L('Registry: ' + Object.keys(K.bank.registry).length + ' | Current: ' + S.e.length + ' | Missing: ' + missing.length, 'sy');
+            if (missing.length > 0) {
+                L('Missing elements: ' + missing.slice(0, 5).join(', '), 'wr');
+            }
+            toast('🔍 GAP CHECK: ' + missing.length + ' missing');
+        }
+
+        async function diag() {
+            if (!S.img) { L('Need image', 'wr'); return; }
+            if (S.proc) return;
+            S.proc = true;
+            L('Diagnostic...', 'ml');
+            const prompt = `Diagnose this UI for issues: bugs, usability, performance. Be concise.`;
+            try {
+                const b64 = S.img.split(',')[1];
+                const res = await api(prompt, b64);
+                L('─── REPORT ───', 'sy');
+                res.split('\n').filter(l => l.trim()).slice(0, 5).forEach(l => {
+                    L('  ▸ ' + l.replace(/^[•\-\*\s]+/, ''), 'ml');
+                });
+                L('─── END ───', 'sy');
+                toast('📋 DIAGNOSTIC DONE');
+            } catch (e) {
+                L('Diag error: ' + e.message, 'er');
+            }
+            S.proc = false;
+        }
+
+        function render() {
+            $('ov').innerHTML = S.e.map((e, i) => `
+<div class="vb${i === S.f ? ' foc' : ''}" style="left:${e.x}%;top:${e.y}%;width:${e.w}%;height:${e.h}%;" onclick="foc(${i})" title="${e.text} (${e.type}) ${Math.round(e.conf*100)}%">
+  <div class="vl">${e.text}</div>
+</div>`).join('');
+        }
+
+        function updateList() {
+            $('ec').textContent = S.e.length;
+            $('el').innerHTML = S.e.length === 0 ? '<div style="color:#030;text-align:center;padding:20px;">No elements</div>' :
+                S.e.map((e, i) => `<div class="ei${i === S.f ? ' act' : ''}" onclick="foc(${i})"><span>${i+1}.</span><span>${e.text}</span><span style="font-size:8px;color:#060;margin-left:auto;">${e.type}</span></div>`).join('');
+        }
+
+        function foc(i) {
+            if (i < 0 || i >= S.e.length) return;
+            S.f = i;
+            $('sf').textContent = S.e[i].text;
+            render();
+            updateList();
+            L('Focus [' + (i + 1) + ']: ' + S.e[i].text, 'sy');
+        }
+
+        function clr() {
+            S.e = [];
+            S.f = -1;
+            S.img = null;
+            $('ov').innerHTML = '';
+            $('sf').textContent = '--';
+            updateList();
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, $('cv').width, $('cv').height);
+            S.img = $('cv').toDataURL('image/png');
+            L('Cleared', 'wr');
+            toast('🗑 CLEARED');
+        }
+
+        function handleKeys(e) {
+            const ctrl = e.ctrlKey || e.metaKey;
+            if (ctrl && e.key === 'o') { e.preventDefault(); conn(); }
+            else if (ctrl && e.key === 'c') { e.preventDefault(); cap(); }
+            else if (ctrl && e.key === 'a') { e.preventDefault(); ana(); }
+            else if (ctrl && e.key === 'h') { e.preventDefault(); diag(); }
+            else if (ctrl && e.key === 'd') { e.preventDefault(); cap(); }
+            else if (e.key === 'Escape') { e.preventDefault(); clr(); }
+            else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); foc(S.f + (e.key === 'ArrowRight' ? 1 : -1)); }
+        }
+
+        window.help = () => {
+            console.log(`KTMOC CRT v4.0+ Commands:
+CTRL+O  Connect | CTRL+C  Capture | CTRL+A  Analyze (AI)
+CTRL+H  Diagnose | CTRL+D  Demo | ESC Clear
+Native: ${isNative ? 'Yes' : 'No'} | AI: ${hasAi ? 'Yes' : 'No'}`);
+        };
+
+        window.exportData = () => {
+            const data = hasStorage ? KBankStorage.exportData() : JSON.stringify(K.bank, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ktmoc-k_bank-' + Date.now() + '.json';
+            a.click();
+            L('Exported K_BANK', 'ok');
+        };
+
+        init();
+        console.log('%c KTMOC CRT v4.0+ %c Ready | help() | exportData()', 'color:#0f0;font-size:16px;', 'color:#aaa;');
+    </script>
+</body>
+</html>

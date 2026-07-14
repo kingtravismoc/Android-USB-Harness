@@ -1,36 +1,53 @@
-# Built application files
+```
+# Android build artifacts
 *.apk
-*.ap_
-
-# Files for the ART/Dalvik VM
+*.aar
 *.dex
+*.so
 
-# Java class files
-*.class
-
-# Generated files
-bin/
-gen/
-out/
-
-# Gradle files
-.gradle/
+# Android build directories
 build/
-*/build/
-*/*/build/
-
-# Local configuration file (sdk path, etc)
+.gradle/
 local.properties
 
-# Android Studio Navigation editor temp files
-.navigation/
-
-# Android Studio captures folder
-captures/
-
-# Intellij
+# IDE files
+.idea/
 *.iml
-.idea
+*.iws
+.vscode/
 
-# Keystore files
-*.jks
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Environment
+.env
+.env.local
+.env.*
+
+# Python related (if any Python components)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Coverage reports
+coverage/
+htmlcov/
+*.coverage
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Archives
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.7z
+*.rar
+```

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup rules for F-Droid compatibility -->
+<full-backup-content>
+    <!-- Exclude sensitive AI keys from backup -->
+    <exclude domain="sharedpref" path="ktmoc_prefs.xml"/>
+    
+    <!-- Include K-Bank data for export -->
+    <include domain="sharedpref" path="kbank_data.xml"/>
+</full-backup-content>

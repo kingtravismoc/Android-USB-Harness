@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KTMOC Harness</string>
+    <string name="usb_permission_title">USB Device Permission</string>
+    <string name="usb_permission_message">Allow KTMOC Harness to access USB devices for debugging?</string>
+    <string name="ai_config_title">AI Service Configuration</string>
+    <string name="ai_service_label">Service Name</string>
+    <string name="ai_model_label">Model</string>
+    <string name="ai_api_key_label">API Key (optional)</string>
+    <string name="use_nokey_mode">Use HuggingFace No-Key Mode</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="capture">Capture</string>
+    <string name="analyze">Analyze (AI)</string>
+    <string name="synthesize">Synthesize</string>
+    <string name="diagnose">Diagnose</string>
+    <string name="clear">Clear</string>
+    <string name="export_data">Export Data</string>
+    <string name="settings">Settings</string>
+</resources>
