@@ -1,8 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
+    // Required for modern AGP: set namespace that matches the app's package
+    namespace 'org.chromium.chrome.browser'
 
-    // Use modern property names; keep same SDK numbers to preserve behaviour
+    // Keep original SDK numbers to minimize functional changes
     compileSdk = 25
     buildToolsVersion "25.0.3"
 
@@ -17,7 +19,7 @@ android {
 
     signingConfigs {
         release {
-
+            // keep empty unless you add keystore properties
         }
     }
 
@@ -29,11 +31,7 @@ android {
         }
     }
 
-    dexOptions {
-        jumboMode = true
-        javaMaxHeapSize "4g"
-    }
-
+    // dexOptions is obsolete with modern AGP; removed to avoid deprecation warnings
     aaptOptions {
         noCompress "dat", "bin", "pak"
     }
